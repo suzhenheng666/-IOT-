@@ -32,6 +32,6 @@
 - `stm32fxx_it.c`: 存放硬件中断服务路由（ISR），如 `USART_IRQHandler`。
 
 ---
-**开发者：** Gemini AI 协同完成
+**开发者：** 苏振恒
 **架构层级：** 底层物理交互层 (感知与执行)
 **技术栈：** C / STM32 HAL / FreeRTOS / UART 协议设计
