@@ -168,5 +168,3 @@ cd Server && gcc -o iot_server src/*.c third_party/cJSON/cJSON.c -I include -I t
 4. 烧录STM32和ESP32固件
 
 ---
-
-**AIoT双端智能环境监控系统** 不仅是一个功能完整的物联网项目，更是现代嵌入式系统与云计算融合的最佳实践。项目中体现的技术深度、架构思维和工程实践能力，将为您的技术面试增添重要砝码。
