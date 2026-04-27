@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/home/szh666/IoT/IoT/build/CMakeFiles/bootloader
+/home/szh666/IoT/IoT/build/CMakeFiles/bootloader.rule
+/home/szh666/IoT/IoT/build/CMakeFiles/bootloader-complete.rule
+/home/szh666/IoT/IoT/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/home/szh666/IoT/IoT/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/home/szh666/IoT/IoT/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/home/szh666/IoT/IoT/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/home/szh666/IoT/IoT/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/home/szh666/IoT/IoT/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/home/szh666/IoT/IoT/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule

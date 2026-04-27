@@ -1,0 +1,2 @@
+source /home/szh666/IoT/IoT/build/bootloader/gdbinit/symbols
+source /home/szh666/IoT/IoT/build/bootloader/gdbinit/connect
