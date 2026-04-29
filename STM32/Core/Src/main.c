@@ -32,6 +32,7 @@
 #include "Fan.h"
 #include "print.h"
 #include "protocol.h"
+#include "queue.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,9 +55,9 @@
 /* USER CODE BEGIN PV */
 extern osSemaphoreId_t uart1TxSemHandle;
 extern osSemaphoreId_t uart2TxSemHandle;
+extern osMessageQueueId_t cloudCmdQueueHandle;
+
 uint8_t rx_byte;
-static uint8_t rx_step = 0;
-static uint8_t cmd_val = 0;
 Fan_st Fan_state=fan_off;
 /* USER CODE END PV */
 
@@ -69,34 +70,34 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static uint8_t cmd_rx_buffer[sizeof(DataFrame_t)];
+static uint8_t cmd_rx_index = 0;
 void Process_ESP32_Command(uint8_t data) {
-    switch(rx_step) {
-        case 0: 
-            if(data == 0x55) rx_step = 1;
-            break;
-            
-        case 1:
-            if(data == 0xAA) rx_step = 2;
-            else rx_step = 0;
-            break;
-            
-        case 2: 
-            cmd_val = data;
-            rx_step = 3;
-            break;
-            
-        case 3: 
-            if(data == 0xFF) {
-               
-                if(cmd_val == 0x01) {
-                    Fan_On();
-                } 
-                else if(cmd_val == 0x00) {
-                    Fan_Off();
+    cmd_rx_buffer[cmd_rx_index] = data;
+    cmd_rx_index++;
+    
+    if(cmd_rx_index >= sizeof(DataFrame_t)) {
+        DataFrame_t *frame = (DataFrame_t*)cmd_rx_buffer;
+        
+        if(frame->header1 == 0xA5 && frame->header2 == 0x5A) {
+            if(frame->len == sizeof(SensorPayload_t)) {
+                uint8_t *calc_start_ptr = (uint8_t*)&frame->cmd;
+                uint8_t calc_len = 1 + 1 + sizeof(frame->payload);
+                uint8_t cal_sum = Calc_Checksum(calc_start_ptr, calc_len);
+                
+                // 验证校验和
+                if(cal_sum == frame->checksum) {
+                    if(frame->cmd == 0x01) {
+                        if(frame->payload.fan_state == 0x01) {
+                            Fan_On();
+                        } else if(frame->payload.fan_state == 0x00) {
+                            Fan_Off();
+                        }
+                    }
                 }
             }
-            rx_step = 0; 
-            break;
+        }
+        cmd_rx_index = 0;
     }
 }
 /* USER CODE END 0 */

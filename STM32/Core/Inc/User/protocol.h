@@ -5,6 +5,11 @@
 #include "print.h"
 #include "usart.h"
 
+typedef struct {
+    uint8_t cmd;      // 控制命令 (比如 0x01 手动开)
+    uint8_t value;    // 附带数值 (比如阈值 30)
+} CloudCmd_t;
+
 //1 字节紧密排列
 #pragma pack(push, 1)
 typedef struct
@@ -28,6 +33,6 @@ typedef struct
 #pragma pack(pop)
 
 void Send_Sensor_Data(uint8_t t_i, uint8_t t_d, uint8_t h_i, uint8_t h_d, uint8_t fan_st);
-void Process_ESP32_Command(uint8_t data);
+uint8_t Calc_Checksum(uint8_t *data, uint16_t length);
 
 #endif

@@ -30,6 +30,7 @@
 #include "print.h"
 #include <string.h>
 #include "protocol.h"
+#include "queue.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,7 +50,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+float current_temp=0;
+uint8_t temperature = 0;
+uint8_t temperature_deci=0;
 extern Fan_st Fan_state;
+uint8_t fan_mode = 0;         // 0: 自动模式, 1: 手动模式
+float temp_threshold = 30.0;  // 报警阈值
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -71,6 +77,11 @@ const osThreadAttr_t fanTask_attributes = {
   .name = "fanTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for cloudCmdQueue */
+osMessageQueueId_t cloudCmdQueueHandle;
+const osMessageQueueAttr_t cloudCmdQueue_attributes = {
+  .name = "cloudCmdQueue"
 };
 /* Definitions for uart1TxSem */
 osSemaphoreId_t uart1TxSemHandle;
@@ -122,6 +133,10 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* creation of cloudCmdQueue */
+  cloudCmdQueueHandle = osMessageQueueNew (16, sizeof(uint16_t), &cloudCmdQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -177,8 +192,6 @@ void StartDefaultTask(void *argument)
 void StartDht11Task(void *argument)
 {
   /* USER CODE BEGIN StartDht11Task */
-	uint8_t temperature = 0;
-	uint8_t temperature_deci=0;
 	uint8_t humidity = 0;
 	uint8_t humidity_deci=0;
 	uint8_t status=0;
@@ -189,6 +202,7 @@ void StartDht11Task(void *argument)
   {
 		osDelay(2500);
 		status = DHT11_ReadData(&temperature, &temperature_deci,&humidity,&humidity_deci);
+		current_temp=temperature > 0? temperature+temperature_deci/10.0 : temperature - temperature_deci/10.0;
 		
     if(status == 0)
     {
@@ -220,9 +234,38 @@ void StartDht11Task(void *argument)
 void StartFanTask(void *argument)
 {
   /* USER CODE BEGIN StartFanTask */
+	CloudCmd_t rx_cmd;
   /* Infinite loop */
   for(;;)
   {
+		if(xQueueReceive(cloudCmdQueueHandle, &rx_cmd, pdMS_TO_TICKS(1000)) == pdPASS)
+		{
+			switch(rx_cmd.cmd)
+			{
+				case 0x00:
+					fan_mode = 1;
+					Fan_Off();
+					break;
+				case 0x01:
+					fan_mode=1;
+					Fan_On();
+					break;
+				case 0x02:
+					fan_mode=0;
+					break;
+				case 0x1E:
+					temp_threshold = (float)rx_cmd.value;
+					break;
+			}
+		}
+		if (fan_mode == 0) {
+            // 假设 current_temp 是从另一个传感器任务共享过来的全局变量
+            if (current_temp > temp_threshold && Fan_state == 0) {
+                Fan_On();
+            } else if (current_temp <= temp_threshold && Fan_state == 1) {
+                Fan_Off();
+            }
+        }
     osDelay(1);
   }
   /* USER CODE END StartFanTask */
