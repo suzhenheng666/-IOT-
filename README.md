@@ -1,4 +1,4 @@
-# -IOT-- 项目概述
+# -AIOT-- 项目概述
 
 纯上行三层物联网系统：STM32F4 传感器+FOC 电机控制 → ESP32-S3 MQTT 网关+YOLO 视觉 → Linux C 后端 (libmosquitto+libmicrohttpd) + 纯 HTML 前端。
 
