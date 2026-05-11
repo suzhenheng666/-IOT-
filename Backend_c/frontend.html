@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IoT 机柜监控系统</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f0f2f5; color:#333; }
+.header { background:#fff; padding:16px 24px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+.header h1 { font-size:20px; color:#1890ff; }
+.header-right { display:flex; gap:12px; align-items:center; }
+.status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+.status-dot.online { background:#52c41a; }
+.status-dot.offline { background:#d9d9d9; }
+.btn { padding:8px 20px; border:none; border-radius:4px; cursor:pointer; font-size:13px; transition:all .2s; }
+.btn-primary { background:#1890ff; color:#fff; }
+.btn-primary:hover { background:#40a9ff; }
+.container { max-width:1200px; margin:20px auto; padding:0 20px; }
+/* 统计卡片 */
+.cards { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:20px; }
+.card { background:#fff; padding:20px; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,.06); text-align:center; }
+.card-label { font-size:12px; color:#999; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; }
+.card-value { font-size:28px; font-weight:700; }
+.card-value.temp { color:#ff4d4f; }
+.card-value.humi { color:#1890ff; }
+.card-value.rpm  { color:#722ed1; }
+.card-unit { font-size:13px; color:#999; font-weight:400; }
+/* 表格 */
+.table-wrap { background:#fff; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,.06); overflow:hidden; margin-bottom:20px; }
+.table-wrap h3 { padding:16px 20px; font-size:15px; border-bottom:1px solid #f0f0f0; }
+table { width:100%; border-collapse:collapse; }
+th { background:#fafafa; padding:12px 16px; text-align:left; font-weight:600; font-size:13px; color:#666; border-bottom:1px solid #f0f0f0; }
+td { padding:12px 16px; font-size:13px; border-bottom:1px solid #f0f0f0; }
+tr:hover { background:#fafafa; }
+.badge { display:inline-block; padding:2px 10px; border-radius:10px; font-size:12px; color:#fff; font-weight:500; }
+.badge-fault  { background:#ff4d4f; }
+.badge-warning{ background:#faad14; }
+.badge-normal { background:#52c41a; }
+.badge-unknown{ background:#d9d9d9; color:#666; }
+/* 图表 */
+.chart-wrap { background:#fff; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,.06); padding:20px; }
+.chart-wrap h3 { font-size:15px; margin-bottom:12px; }
+.chart-tabs { display:flex; gap:8px; margin-bottom:12px; }
+.tab { padding:6px 16px; border:1px solid #d9d9d9; border-radius:4px; background:#fff; cursor:pointer; font-size:13px; }
+.tab.active { background:#1890ff; color:#fff; border-color:#1890ff; }
+#chart { width:100%; height:360px; }
+.footer { text-align:center; padding:20px; color:#999; font-size:12px; }
+.empty { text-align:center; color:#999; padding:40px; }
+@media (max-width:768px) { .cards { grid-template-columns:repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>IoT 机柜监控系统</h1>
+  <div class="header-right">
+    <span><span class="status-dot" id="statusDot"></span><span id="statusText">检测中...</span></span>
+    <button class="btn btn-primary" onclick="refreshAll()">刷新数据</button>
+    <span style="font-size:12px;color:#999;" id="updateTime"></span>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 统计卡片 -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">温度</div>
+      <div class="card-value temp" id="cardTemp">--<span class="card-unit">°C</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">湿度</div>
+      <div class="card-value humi" id="cardHumi">--<span class="card-unit">%</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">风扇转速</div>
+      <div class="card-value rpm" id="cardRPM">--<span class="card-unit">RPM</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">故障状态</div>
+      <div class="card-value" id="cardStatus" style="font-size:20px;">--</div>
+    </div>
+  </div>
+
+  <!-- 设备表格 -->
+  <div class="table-wrap">
+    <h3>设备列表</h3>
+    <div id="tableContainer">
+      <div class="empty">加载中...</div>
+    </div>
+  </div>
+
+  <!-- 图表 -->
+  <div class="chart-wrap">
+    <h3>历史趋势</h3>
+    <div class="chart-tabs">
+      <button class="tab active" onclick="switchChart('temperature')" id="tabTemp">温度变化</button>
+      <button class="tab" onclick="switchChart('humidity')" id="tabHumi">湿度变化</button>
+    </div>
+    <div id="chart"></div>
+  </div>
+</div>
+
+<div class="footer">MQTT → C Backend → REST API</div>
+
+<script>
+const API = 'http://localhost:8080';
+let chart = null;
+let chartType = 'temperature';
+let deviceId = 'dev001';
+
+// ========== 初始化 ==========
+document.addEventListener('DOMContentLoaded', () => {
+  initChart();
+  refreshAll();
+  setInterval(refreshAll, 5000);  // 每5秒自动刷新
+});
+
+function initChart() {
+  chart = echarts.init(document.getElementById('chart'));
+}
+
+// ========== 数据获取 ==========
+async function refreshAll() {
+  try {
+    const [latestRes, tempRes, humiRes, cameraRes] = await Promise.all([
+      fetch(`${API}/api/v1/devices/latest`).then(r => r.json()),
+      fetch(`${API}/api/v1/device/temperature?device_id=${deviceId}`).then(r => r.json()),
+      fetch(`${API}/api/v1/device/humidity?device_id=${deviceId}`).then(r => r.json()),
+      fetch(`${API}/api/v1/device/camera/latest`).then(r => r.json()),
+    ]);
+
+    renderCards(latestRes);
+    renderTable(latestRes);
+    updateChartData(tempRes, humiRes);
+    updateStatus(true);
+  } catch(e) {
+    console.error('请求失败:', e);
+    updateStatus(false);
+  }
+  document.getElementById('updateTime').textContent = new Date().toLocaleTimeString();
+}
+
+// ========== 卡片渲染 ==========
+function renderCards(res) {
+  if (!res || res.code !== 0 || !res.data || res.data.length === 0) {
+    document.getElementById('cardTemp').innerHTML = '--<span class="card-unit">°C</span>';
+    document.getElementById('cardHumi').innerHTML = '--<span class="card-unit">%</span>';
+    document.getElementById('cardRPM').innerHTML = '--<span class="card-unit">RPM</span>';
+    document.getElementById('cardStatus').innerHTML = '<span style="font-size:13px;color:#999;">无数据</span>';
+    return;
+  }
+  const d = res.data[0];
+  document.getElementById('cardTemp').innerHTML = `${d.temperature.toFixed(1)}<span class="card-unit">°C</span>`;
+  document.getElementById('cardHumi').innerHTML = `${d.humidity.toFixed(1)}<span class="card-unit">%</span>`;
+  document.getElementById('cardRPM').innerHTML = `${d.fan_speed || 0}<span class="card-unit">RPM</span>`;
+  document.getElementById('cardStatus').innerHTML = statusBadge(d.camera_status);
+}
+
+// ========== 表格渲染 ==========
+function renderTable(res) {
+  const container = document.getElementById('tableContainer');
+  if (!res || res.code !== 0 || !res.data || res.data.length === 0) {
+    container.innerHTML = '<div class="empty">暂无设备数据</div>';
+    return;
+  }
+
+  const devices = res.data;
+  const rows = devices.map(d => `
+    <tr>
+      <td>${esc(d.device_id)}</td>
+      <td>${esc(d.name || d.device_id)}</td>
+      <td>${Number(d.longitude).toFixed(4)}</td>
+      <td>${Number(d.latitude).toFixed(4)}</td>
+      <td style="font-weight:600;color:${d.temperature > 35 ? '#ff4d4f' : '#333'}">${Number(d.temperature).toFixed(1)}°C</td>
+      <td>${Number(d.humidity).toFixed(1)}%</td>
+      <td style="font-weight:600;">${d.fan_speed || 0} RPM</td>
+      <td>${statusBadge(d.camera_status)}</td>
+      <td style="font-size:12px;color:#999;">${formatTs(d.timestamp)}</td>
+    </tr>
+  `).join('');
+
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>设备ID</th><th>名称</th><th>经度</th><th>纬度</th>
+          <th>温度</th><th>湿度</th><th>风扇转速</th><th>故障状态</th><th>更新时间</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ========== 图表 ==========
+let tempData = [];
+let humiData = [];
+
+function updateChartData(tempRes, humiRes) {
+  if (tempRes && tempRes.code === 0 && tempRes.data) {
+    tempData = tempRes.data.map(d => ({
+      time: d.time ? d.time.substr(11,8) : '',
+      value: d.temperature
+    })).reverse();
+  }
+  if (humiRes && humiRes.code === 0 && humiRes.data) {
+    humiData = humiRes.data.map(d => ({
+      time: d.time ? d.time.substr(11,8) : '',
+      value: d.humidity
+    })).reverse();
+  }
+  renderChart();
+}
+
+function switchChart(type) {
+  chartType = type;
+  document.getElementById('tabTemp').className = 'tab' + (type === 'temperature' ? ' active' : '');
+  document.getElementById('tabHumi').className = 'tab' + (type === 'humidity' ? ' active' : '');
+  renderChart();
+}
+
+function renderChart() {
+  if (!chart) return;
+  const data = chartType === 'temperature' ? tempData : humiData;
+  const name = chartType === 'temperature' ? '温度 (°C)' : '湿度 (%)';
+  const color = chartType === 'temperature' ? '#ff4d4f' : '#1890ff';
+  const threshold = chartType === 'temperature' ? 35 : 80;
+
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left:50, right:30, top:20, bottom:30 },
+    xAxis: {
+      type: 'category',
+      data: data.map(d => d.time),
+      axisLabel: { fontSize:11 }
+    },
+    yAxis: {
+      type: 'value',
+      name,
+      axisLabel: { fontSize:11 }
+    },
+    series: [{
+      name,
+      type: 'line',
+      data: data.map(d => d.value),
+      smooth: true,
+      lineStyle: { color, width:2 },
+      itemStyle: { color },
+      areaStyle: { color: color + '20' },
+      markLine: {
+        silent: true,
+        data: [{ yAxis: threshold, label:{formatter:'阈值:'+threshold}, lineStyle:{color:'#faad14',type:'dashed'} }]
+      }
+    }]
+  });
+}
+
+// ========== 工具函数 ==========
+function statusBadge(status) {
+  const map = {
+    fault:   '<span class="badge badge-fault">故障</span>',
+    warning: '<span class="badge badge-warning">告警</span>',
+    normal:  '<span class="badge badge-normal">正常</span>',
+  };
+  return map[status] || '<span class="badge badge-unknown">未知</span>';
+}
+
+function updateStatus(online) {
+  document.getElementById('statusDot').className = 'status-dot ' + (online ? 'online' : 'offline');
+  document.getElementById('statusText').textContent = online ? '在线' : '离线';
+}
+
+function formatTs(ts) {
+  if (!ts) return '--';
+  return ts.replace('T', ' ').substr(0, 19);
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

@@ -4,7 +4,15 @@
 # CMakeLists in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.16)
 
-set(EXTRA_COMPONENT_DIRS components/Middlewares)
+set(EXTRA_COMPONENT_DIRS
+    components/BSP
+    components/Middlewares
+    components/Middlewares/Protocol
+    components/Middlewares/WIFI
+    components/Middlewares/MQTT
+    components/Peripherals/Camera
+    components/AI
+)
 add_compile_options(-fdiagnostics-color=always)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
