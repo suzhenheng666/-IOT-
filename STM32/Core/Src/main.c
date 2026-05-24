@@ -55,6 +55,8 @@
 /* USER CODE BEGIN PV */
 extern osSemaphoreId_t uart1TxSemHandle;
 extern osSemaphoreId_t uart2TxSemHandle;
+extern osMessageQueueId_t cloudCmdQueueHandle;
+
 uint8_t rx_byte;
 Fan_st Fan_state=fan_off;
 /* USER CODE END PV */
@@ -68,7 +70,36 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+static uint8_t cmd_rx_buffer[sizeof(DataFrame_t)];
+static uint8_t cmd_rx_index = 0;
+void Process_ESP32_Command(uint8_t data) {
+    cmd_rx_buffer[cmd_rx_index] = data;
+    cmd_rx_index++;
+    
+    if(cmd_rx_index >= sizeof(DataFrame_t)) {
+        DataFrame_t *frame = (DataFrame_t*)cmd_rx_buffer;
+        
+        if(frame->header1 == 0xA5 && frame->header2 == 0x5A) {
+            if(frame->len == sizeof(SensorPayload_t)) {
+                uint8_t *calc_start_ptr = (uint8_t*)&frame->cmd;
+                uint8_t calc_len = 1 + 1 + sizeof(frame->payload);
+                uint8_t cal_sum = Calc_Checksum(calc_start_ptr, calc_len);
+                
+                // 验证校验和
+                if(cal_sum == frame->checksum) {
+                    if(frame->cmd == 0x01) {
+                        if(frame->payload.fan_state == 0x01) {
+                            Fan_On();
+                        } else if(frame->payload.fan_state == 0x00) {
+                            Fan_Off();
+                        }
+                    }
+                }
+            }
+        }
+        cmd_rx_index = 0;
+    }
+}
 /* USER CODE END 0 */
 
 /**
@@ -192,7 +223,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance==USART2)
 	{
-		// 下行控制已移除，UART2 仅保留接收能力供调试用
+		Process_ESP32_Command(rx_byte);
 		HAL_UART_Receive_IT(&huart2, &rx_byte, 1);
 	}
 }

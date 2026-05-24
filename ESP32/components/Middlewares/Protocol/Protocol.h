@@ -3,26 +3,22 @@
 
 #include "driver/gpio.h"
 
-#define CMD_SENSOR_REPORT  0x00
-#define FRAME_HEADER1  0xA5
-#define FRAME_HEADER2  0x5A
-
-#pragma pack(push, 1)
+#pragma pack(push, 1) // 强制单字节对齐
 typedef struct {
-    uint8_t  temp_int;
-    uint8_t  temp_dec;
-    uint8_t  humi_int;
-    uint8_t  humi_dec;
-    uint16_t fan_speed;
+    uint8_t temp_int;
+    uint8_t temp_dec;
+    uint8_t humi_int;
+    uint8_t humi_dec;
+    uint8_t fan_state;
 } SensorPayload_t;
 
 typedef struct {
-    uint8_t  header1;
-    uint8_t  header2;
-    uint8_t  cmd;
-    uint8_t  len;
-    SensorPayload_t payload;
-    uint8_t  checksum;
+    uint8_t  header1;   
+    uint8_t  header2;   
+    uint8_t  cmd;       
+    uint8_t  len;       
+    SensorPayload_t payload; 
+    uint8_t  checksum;  
 } DataFrame_t;
 #pragma pack(pop)
 
