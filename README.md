@@ -13,7 +13,7 @@
 ## 🔥 亮眼技术亮点
 
 ### 1. **双处理器协同架构（Dual Processor Collaboration）**
-- **职责分离设计**：STM32F4专注底层传感器控制和实时任务，ESP32-S3专注网络通信和边缘计算
+- **职责分离设计**：STM32F4专注底层传感器控制和本地温控决策，ESP32-S3专注网络通信、协议转换和边缘缓存
 - **性能优化**：避免单一MCU既要处理实时控制又要处理复杂网络协议的性能瓶颈
 - **可靠性提升**：任一处理器故障不影响另一处理器的基本功能
 
@@ -34,10 +34,11 @@
 - **模块化路由**：自实现RESTful API路由系统，支持动态注册和分发
 - **缓冲区管理**：高效的内存池和缓冲区管理，避免内存泄漏
 
-### 5. **边缘计算与断线续传（Edge Computing & Offline Cache）**
-- **本地缓存**：ESP32端在网络异常时自动缓存传感器数据
-- **智能重传**：网络恢复后自动批量上传缓存数据，保证数据完整性
-- **WiFi容错**：实现WiFi断线自动重连机制，最大重试次数可配置
+### 5. **边缘计算与断线续传（Edge Computing & Store-and-Forward）**
+- **NVS离线缓存**：网络异常时自动将传感器数据缓存到ESP32的NVS闪存，基于环形缓冲区管理，最大缓存50条
+- **断线续传**：网络恢复后自动批量上传缓存数据，上传中断时保留剩余条目，下次继续补传
+- **WiFi重连**：WiFi断线后自动重连，最大重试5次，基于FreeRTOS事件标志组实现状态管理
+- **本地温控**：STM32端独立运行温度阈值判断，不依赖云端指令即可自动控制风扇开关
 
 ### 6. **现代化前端技术栈（Modern Frontend Stack）**
 - **Vue 3 Composition API**：采用最新的Vue 3组合式API开发模式
@@ -66,14 +67,14 @@
 ├─────────────────┤    ├─────────────────┤    ├─────────────────┤    ├─────────────────┤
 │ • FreeRTOS RTOS │◄──►│ • FreeRTOS RTOS │◄──►│ • libevent      │◄──►│ • Vue 3         │
 │ • DHT11传感器   │UART│ • UART通信      │HTTP│ • MySQL存储     │API │ • ECharts       │
-│ • 风扇PWM控制   │    │ • WiFi STA模式  │    │ • cJSON解析     │    │ • Axios         │
-│ • 自定义协议    │    │ • HTTP Client   │    │ • RESTful API   │    │ • Vite构建      │
+│ • 本地温控判决  │    │ • NVS边缘缓存   │    │ • cJSON解析     │    │ • Axios         │
+│ • 自定义协议    │    │ • WiFi STA模式  │    │ • RESTful API   │    │ • Vite构建      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 ### 数据流说明
-1. **STM32端**：DHT11传感器采集温湿度 → FreeRTOS任务调度 → 打包自定义二进制协议 → UART发送
-2. **ESP32端**：UART接收数据 → FreeRTOS队列传递 → HTTP Client打包JSON → WiFi上传至服务器
+1. **STM32端**：DHT11传感器采集温湿度 → FreeRTOS任务调度 → 本地温度阈值判决控制风扇 → 打包自定义二进制协议 → UART发送给ESP32
+2. **ESP32端**：UART接收数据 → FreeRTOS队列传递 → HTTP Client打包JSON → WiFi上传至服务器（网络异常时自动缓存到NVS，恢复后补传）
 3. **Server端**：libevent接收HTTP请求 → cJSON解析JSON → MySQL存储 → 返回响应
 4. **Frontend端**：Axios调用RESTful API → Vue组件渲染 → ECharts可视化展示
 
@@ -84,8 +85,9 @@
 | **硬件平台** | STM32F407VGT6 + ESP32-S3 | ARM Cortex-M4 + Xtensa LX7 |
 | **嵌入式OS** | FreeRTOS | 多任务调度、队列通信、信号量同步 |
 | **通信协议** | 自定义二进制协议 + HTTP/1.1 | 结构体对齐、校验和、RESTful |
-| **网络库** | ESP-IDF WiFi + libevent | 异步事件驱动、高并发 |
+| **网络通信** | ESP-IDF WiFi(ESP32端) + libevent(Server端) | 异步事件驱动、STA模式 |
 | **数据存储** | MySQL | 关系型数据库、时序数据优化 |
+| **边缘存储** | NVS (Non-Volatile Storage) | ESP32闪存、环形缓冲区、掉电不丢失 |
 | **JSON处理** | cJSON | 轻量级、内存效率高 |
 | **前端框架** | Vue 3 + Vite | Composition API、现代化构建 |
 | **可视化** | ECharts | 专业级数据图表 |
@@ -117,7 +119,7 @@
 
 | 指标 | 数值 | 说明 |
 |------|------|------|
-| **采集频率** | 1Hz（可配置） | 实时环境数据采集 |
+| **采集频率** | ~0.4Hz（可配置） | 每2.5秒采集一次 |
 | **传输延迟** | < 500ms | 端到端平均延迟 |
 | **并发连接** | 1000+ | 单服务器支持设备数 |
 | **数据精度** | 温度±2℃，湿度±5%RH | DHT11传感器精度 |
@@ -138,7 +140,8 @@
 - **可维护性**：配置文件分离、日志系统完善
 
 ### 🚀 **创新亮点**
-- **边缘计算**：在网络不稳定环境下保证数据完整性
+- **边缘缓存**：NVS闪存离线缓存 + 网络恢复自动补传，数据一条不丢
+- **本地自治**：STM32端独立温控判决，断网时风扇仍能自动运行
 - **协议设计**：自定义高效通信协议的实际应用
 - **实时系统**：FreeRTOS在实际项目中的深度应用
 
@@ -149,8 +152,8 @@
 # 前端依赖安装
 cd Frontend && npm install
 
-# 后端编译（Linux环境）
-cd Server && gcc -o iot_server src/*.c third_party/cJSON/cJSON.c -I include -I third_party -lmysqlclient -lpthread -levent
+# 后端编译（Linux环境，需安装libevent和mysqlclient开发库）
+cd Server && mkdir -p build && cd build && cmake .. && make
 
 # 数据库初始化
 # 创建iot_monitoring数据库并导入表结构
@@ -163,7 +166,7 @@ cd Server && gcc -o iot_server src/*.c third_party/cJSON/cJSON.c -I include -I t
 
 ### 启动流程
 1. 启动MySQL数据库服务
-2. 运行后端服务器：`./iot_server`
+2. 运行后端服务器：`./build/MyTinyHttpd`
 3. 启动前端开发服务器：`npm run dev`
 4. 烧录STM32和ESP32固件
 
