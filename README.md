@@ -22,7 +22,7 @@
 
 #### 数据库
 
-![数据库](show/数据库.png)
+![数据库](https://github.com/suzhenheng666/-IOT-/show/数据库.png)
 
 #### Web 前端
 
