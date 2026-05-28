@@ -8,7 +8,7 @@
 
 ### 项目演示
 
-<video src="https://rawcdn.githack.com/suzhenheng666/-IOT-/main/Show/%E4%B8%8B%E8%BD%BD.png" controls width="100%"></video>
+![项目演示](https://rawcdn.githack.com/suzhenheng666/-IOT-/7e064392c70195f01a83aaee66029f7f27c0252e/Show/%E4%B8%8B%E8%BD%BD.png)
 
 ### 系统运行截图
 
