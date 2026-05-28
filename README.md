@@ -14,13 +14,13 @@
 
 #### 数据库
 
-<video src="https://github.com/suzhenheng666/-IOT-/blob/main/Show/%E6%95%B0%E6%8D%AE%E5%BA%93.png" controls width="600"></video>
+![MySQL数据库](https://rawcdn.githack.com/suzhenheng666/-IOT-/eadfc415ed7666e5f60fa50fc676eff91a762d28/Show/%E6%95%B0%E6%8D%AE%E5%BA%93.png)
 
 #### Web 前端
 
-![Web前端](https://rawcdn.githack.com/suzhenheng666/-IOT-/tree/main/Show/Web.png)
-![Web前端1](https://rawcdn.githack.com/suzhenheng666/-IOT-/tree/main/Show/Web1.png)
-![Web前端2](https://rawcdn.githack.com/suzhenheng666/-IOT-/tree/main/Show/Web3.png)
+![Web前端](https://rawcdn.githack.com/suzhenheng666/-IOT-/main/Show/Web.png)
+![Web前端1](https://rawcdn.githack.com/suzhenheng666/-IOT-/main/Show/Web1.png)
+![Web前端2](https://rawcdn.githack.com/suzhenheng666/-IOT-/eadfc415ed7666e5f60fa50fc676eff91a762d28/Show/Web2.png)
 
 #### ESP32 打印日志
 
