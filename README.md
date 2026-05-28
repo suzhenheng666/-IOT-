@@ -6,17 +6,9 @@
 
 ## 项目演示视频
 
-### 项目演示一
+### 项目演示
 
-<video src="show/项目演示.mp4" controls width="100%"></video>
-
-### 项目演示二
-
-<video src="show/2af1ec1004f0119c9d3f5fa70c4d3ef4.mp4" controls width="100%"></video>
-
-### 项目硬件实物图
-
-![项目硬件实物图](show/项目硬件实物图.jpg)
+<video src="https://rawcdn.githack.com/suzhenheng666/-IOT-/main/Show/%E4%B8%8B%E8%BD%BD.png" controls width="100%"></video>
 
 ### 系统运行截图
 
@@ -26,9 +18,9 @@
 
 #### Web 前端
 
-![Web前端](show/Web.png)
-![Web前端1](show/Web1.png)
-![Web前端2](show/Web2.png)
+![Web前端](https://rawcdn.githack.com/suzhenheng666/-IOT-/tree/main/Show/Web.png)
+![Web前端1](https://rawcdn.githack.com/suzhenheng666/-IOT-/tree/main/Show/Web1.png)
+![Web前端2](https://rawcdn.githack.com/suzhenheng666/-IOT-/tree/main/Show/Web3.png)
 
 #### ESP32 打印日志
 
@@ -36,11 +28,11 @@
 
 #### 后端接收日志
 
-![后端接收日志](show/后端接受日志.png)
+![后端接收日志](https://rawcdn.githack.com/suzhenheng666/-IOT-/main/Show/%E5%90%8E%E7%AB%AF%E6%8E%A5%E5%8F%97%E6%97%A5%E5%BF%97.png)
 
 #### 大模型返回数据
 
-![大模型返回数据](show/大模型返回数据.png)
+![大模型返回数据](https://rawcdn.githack.com/suzhenheng666/-IOT-/main/Show/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%BF%94%E5%9B%9E%E6%95%B0%E6%8D%AE.png)
 
 ## 项目概述
 
