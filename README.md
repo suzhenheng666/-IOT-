@@ -32,7 +32,7 @@
 
 #### ESP32 打印日志
 
-![ESP32打印日志](show/ESP32打印日志.png)
+![ESP32打印日志](https://rawcdn.githack.com/suzhenheng666/-IOT-/main/Show/ESP32%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97.png)
 
 #### 后端接收日志
 
