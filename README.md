@@ -22,7 +22,7 @@
 
 #### 数据库
 
-![数据库](https://github.com/suzhenheng666/-IOT-/show/数据库.png)
+<video src="https://github.com/你的用户名/仓库名/raw/分支名/文件名.mp4" controls width="600"></video>
 
 #### Web 前端
 
