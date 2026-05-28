@@ -6,7 +6,41 @@
 
 ## 项目演示视频
 
+### 项目演示一
+
 <video src="show/项目演示.mp4" controls width="100%"></video>
+
+### 项目演示二
+
+<video src="show/2af1ec1004f0119c9d3f5fa70c4d3ef4.mp4" controls width="100%"></video>
+
+### 项目硬件实物图
+
+![项目硬件实物图](show/项目硬件实物图.jpg)
+
+### 系统运行截图
+
+#### 数据库
+
+![数据库](show/数据库.png)
+
+#### Web 前端
+
+![Web前端](show/Web.png)
+![Web前端1](show/Web1.png)
+![Web前端2](show/Web2.png)
+
+#### ESP32 打印日志
+
+![ESP32打印日志](show/ESP32打印日志.png)
+
+#### 后端接收日志
+
+![后端接收日志](show/后端接受日志.png)
+
+#### 大模型返回数据
+
+![大模型返回数据](show/大模型返回数据.png)
 
 ## 项目概述
 
