@@ -4,6 +4,10 @@
 
 ![IoT Architecture](https://img.shields.io/badge/Architecture-Dual%20Processor%20Collaboration-brightgreen) ![RTOS](https://img.shields.io/badge/RTOS-FreeRTOS-blue) ![Protocol](https://img.shields.io/badge/Protocol-Custom%20Binary-orange) ![EventDriven](https://img.shields.io/badge/Backend-Event%20Driven-green)
 
+## 项目演示视频
+
+<video src="show/项目演示.mp4" controls width="100%"></video>
+
 ## 项目概述
 
 **AIoT双端智能环境监控系统** 是一款深度融合嵌入式技术与云计算的企业级物联网解决方案。项目创新性地采用**STM32F4 + ESP32-S3双处理器协同架构**，通过职责分离的设计理念，实现了高性能、高可靠性的环境监控系统。
@@ -57,25 +61,40 @@
 - **日志系统**：多级别日志记录，便于问题排查和系统监控
 - **资源保护**：防止缓冲区溢出、内存泄漏等常见安全问题
 
+### 9. **云端 AI 大模型环境分析（LLM-Powered Analysis）**
+- **数据驱动**：ESP32 每采集 10 条温湿度数据，批量发送至服务器
+- **大模型推理**：服务端调用 DeepSeek / 通义千问 / OpenAI 等大模型分析环境趋势
+- **智能建议**：返回风险等级 + 文字分析 + 可执行建议，ESP32 串口实时打印
+
 ## 系统架构详解
 
 ### 架构拓扑图
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   感知层        │    │   网络层        │    │   服务层        │    │   应用层        │
-│  (STM32F4)      │    │  (ESP32-S3)     │    │  (C HTTP Server)│    │  (Vue.js SPA)   │
-├─────────────────┤    ├─────────────────┤    ├─────────────────┤    ├─────────────────┤
-│ • FreeRTOS RTOS │◄──►│ • FreeRTOS RTOS │◄──►│ • libevent      │◄──►│ • Vue 3         │
-│ • DHT11传感器   │UART│ • UART通信      │HTTP│ • MySQL存储     │API │ • ECharts       │
-│ • 本地温控判决  │    │ • NVS边缘缓存   │    │ • cJSON解析     │    │ • Axios         │
-│ • 自定义协议    │    │ • WiFi STA模式  │    │ • RESTful API   │    │ • Vite构建      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────┐    ┌─────────────────┐
+│   感知层        │    │   网络层        │    │   服务层            │    │   应用层        │
+│  (STM32F4)      │    │  (ESP32-S3)     │    │  (C HTTP Server)   │    │  (Vue.js SPA)   │
+├─────────────────┤    ├─────────────────┤    ├─────────────────────┤    ├─────────────────┤
+│ • FreeRTOS RTOS │◄──►│ • FreeRTOS RTOS │◄──►│ • libevent          │◄──►│ • Vue 3         │
+│ • DHT11传感器   │UART│ • UART通信      │HTTP│ • MySQL存储         │API │ • ECharts       │
+│ • 本地温控判决  │    │ • NVS边缘缓存   │    │ • RESTful API       │    │ • Axios         │
+│ • 自定义协议    │    │ • WiFi STA模式  │    │ • 云端 LLM AI 分析  │    │ • Vite构建      │
+└─────────────────┘    └─────────────────┘    └─────────────────────┘    └─────────────────┘
+```
+
+### AI 架构 (云端大模型)
+```
+STM32 → ESP32 → HTTP → C Server → Python 子进程 → AI API (DeepSeek/通义/OpenAI)
+  │                         │                           │
+  │ 温湿度 (每2.5s)          │ 每10条数据批量            │ 环境分析 + 建议
+  │                         │ POST /ai/analyze          │
+  ▼                         ▼                           ▼
+ 传感器采集               MySQL 存储               JSON 返回 ESP32 打印
 ```
 
 ### 数据流说明
 1. **STM32端**：DHT11传感器采集温湿度 → FreeRTOS任务调度 → 本地温度阈值判决控制风扇 → 打包自定义二进制协议 → UART发送给ESP32
-2. **ESP32端**：UART接收数据 → FreeRTOS队列传递 → HTTP Client打包JSON → WiFi上传至服务器（网络异常时自动缓存到NVS，恢复后补传）
-3. **Server端**：libevent接收HTTP请求 → cJSON解析JSON → MySQL存储 → 返回响应
+2. **ESP32端**：UART接收数据 → 每条数据 HTTP 上报云端 / 每10条触发 AI 分析 → 接收 AI 分析结果 → 串口打印
+3. **Server端**：libevent接收 HTTP 请求 → cJSON解析 → MySQL存储 → 调用 Python 脚本 → AI 大模型推理 → 返回分析结果
 4. **Frontend端**：Axios调用RESTful API → Vue组件渲染 → ECharts可视化展示
 
 ## 核心技术栈
@@ -88,6 +107,7 @@
 | **网络通信** | ESP-IDF WiFi(ESP32端) + libevent(Server端) | 异步事件驱动、STA模式 |
 | **数据存储** | MySQL | 关系型数据库、时序数据优化 |
 | **边缘存储** | NVS (Non-Volatile Storage) | ESP32闪存、环形缓冲区、掉电不丢失 |
+| **云端AI** | Python + LLM API | DeepSeek/通义千问/OpenAI 大模型分析 |
 | **JSON处理** | cJSON | 轻量级、内存效率高 |
 | **前端框架** | Vue 3 + Vite | Composition API、现代化构建 |
 | **可视化** | ECharts | 专业级数据图表 |
@@ -128,6 +148,11 @@
 | **功耗优化** | STM32待机电流<1mA | 电池供电场景优化 |
 
 ## 项目优势（面试重点）
+
+### 9. **云端 AI 大模型环境分析**
+- **批量推理**：ESP32 环形缓冲温湿度历史数据，每 10 条数据触发一次云端 AI 分析
+- **大模型接入**：服务端通过 Python 子进程调用 DeepSeek/通义千问/OpenAI 兼容 API
+- **智能反馈**：AI 返回环境趋势分析 + 风险等级 + 可执行建议，ESP32 实时打印
 
 ### 💡 **技术深度**
 - **全栈能力**：从硬件驱动到Web前端的完整技术掌握
